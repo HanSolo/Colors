@@ -3,3 +3,4 @@
 build
 colors.iml
 gradle
+signing.properties
