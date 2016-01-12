@@ -33,10 +33,6 @@ import javafx.stage.Stage;
 import javafx.scene.layout.StackPane;
 import javafx.scene.Scene;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-
 /**
  * User: hansolo
  * Date: 11.01.16
@@ -55,17 +51,13 @@ public class FlatUiColorPicker extends Application {
         int  row  = 0;
         for (FlatUi color : FlatUi.values()) {
             String name     = color.name().replace("_", " ");
-            String hex      = color.COLOR.toString().replace("0x", "");
-            String hexRed   = hex.substring(0, 2).toUpperCase();
-            String hexGreen = hex.substring(2, 4).toUpperCase();
-            String hexBlue  = hex.substring(4, 6).toUpperCase();
-            String intRed   = Integer.toString(Integer.parseInt(hexRed, 16));
-            String intGreen = Integer.toString(Integer.parseInt(hexGreen, 16));
-            String intBlue  = Integer.toString(Integer.parseInt(hexBlue, 16));
+            String strWeb   = ColorHelper.web(color.get());
+            String strRgb   = ColorHelper.rgb(color.get());
             String text     = new StringBuilder().append(name)
                                                  .append("\n")
-                                                 .append("#").append(hexRed).append(hexGreen).append(hexBlue).append("\n")
-                                                 .append("rgb(").append(intRed).append(",").append(intGreen).append(",").append(intBlue).append(")")
+                                                 .append(strWeb)
+                                                 .append("\n")
+                                                 .append(strRgb)
                                                  .toString();
 
             Label label = new Label(name);
@@ -77,22 +69,16 @@ public class FlatUiColorPicker extends Application {
             StackPane box = new StackPane(label);
             box.setPrefSize(BOX_WIDTH, BOX_HEIGHT);
             box.setAlignment(Pos.BOTTOM_LEFT);
-            box.setBackground(new Background(new BackgroundFill(color.COLOR, CornerRadii.EMPTY, Insets.EMPTY)));
+            box.setBackground(new Background(new BackgroundFill(color.get(), CornerRadii.EMPTY, Insets.EMPTY)));
             box.setOnMousePressed(event -> {
                 box.setScaleX(0.9);
                 box.setScaleY(0.9);
-                String clipboardContent = new StringBuilder().append("Color.web(\"#")
-                                                             .append(hexRed)
-                                                             .append(hexGreen)
-                                                             .append(hexBlue)
+                String clipboardContent = new StringBuilder().append("Color.web(\"")
+                                                             .append(strWeb)
                                                              .append("\");\n")
-                                                             .append("Color.rgb(")
-                                                             .append(intRed)
-                                                             .append(", ")
-                                                             .append(intGreen)
-                                                             .append(", ")
-                                                             .append(intBlue)
-                                                             .append(");").toString();
+                                                             .append("Color.")
+                                                             .append(strRgb)
+                                                             .append(";").toString();
 
                 Clipboard        clipboard = Clipboard.getSystemClipboard();
                 ClipboardContent content   = new ClipboardContent();
