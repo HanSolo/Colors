@@ -50,15 +50,10 @@ public class FlatUiColorPicker extends Application {
         int  col  = 0;
         int  row  = 0;
         for (FlatUi color : FlatUi.values()) {
-            String name     = color.name().replace("_", " ");
-            String strWeb   = ColorHelper.web(color.get());
-            String strRgb   = ColorHelper.rgb(color.get());
-            String text     = new StringBuilder().append(name)
-                                                 .append("\n")
-                                                 .append(strWeb)
-                                                 .append("\n")
-                                                 .append(strRgb)
-                                                 .toString();
+            String name   = color.name().replace("_", " ");
+            String strWeb = ColorHelper.web(color.get());
+            String strRgb = ColorHelper.rgb(color.get());
+            String text   = String.join("", name, "\n", strWeb, "\n", strRgb);
 
             Label label = new Label(name);
             label.setFont(font);

@@ -1686,19 +1686,10 @@ public enum MaterialDesign implements IColor {
         COLOR = Color.rgb(RED, GREEN, BLUE);
     }
 
-    @Override
-    public Color get() {
-        return COLOR;
-    }
+    @Override public Color get() { return COLOR; }
 
-    @Override
-    public String rgb() {
-        return ColorHelper.rgb(COLOR);
-    }
+    @Override public String rgb() { return ColorHelper.rgb(COLOR); }
 
-    @Override
-    public String web() {
-        return ColorHelper.web(COLOR);
-    }
+    @Override public String web() { return ColorHelper.web(COLOR); }
 }
 

@@ -22,50 +22,18 @@ import javafx.scene.paint.Color;
  * Created by Naoghuman on 12.01.16.
  */
 public class ColorHelper {
-    
-    private static String hexRed;
-    private static String hexGreen;
-    private static String hexBlue;
-    private static String intRed;
-    private static String intGreen;
-    private static String intBlue;
+    public static String rgb(final Color COLOR) {
+       String hex      = COLOR.toString().replace("0x", "");
+       String hexRed   = hex.substring(0, 2).toUpperCase();
+       String hexGreen = hex.substring(2, 4).toUpperCase();
+       String hexBlue  = hex.substring(4, 6).toUpperCase();
 
-   public static String rgb(Color color) {
-       convert(color);
-       
-       final StringBuilder sb = new StringBuilder();
-       sb.append("rgb(");
-       sb.append(intRed);
-       sb.append(", ");
-       sb.append(intGreen);
-       sb.append(", ");
-       sb.append(intBlue);
-       sb.append(")");
+       String intRed   = Integer.toString(Integer.parseInt(hexRed, 16));
+       String intGreen = Integer.toString(Integer.parseInt(hexGreen, 16));
+       String intBlue  = Integer.toString(Integer.parseInt(hexBlue, 16));
 
-       return sb.toString();
+       return String.join("", "rgb(", intRed, ", ", intGreen, ", ", intBlue, ")");
    }
 
-   public static String web(Color color) {
-       convert(color);
-       
-       final StringBuilder sb = new StringBuilder();
-       sb.append("#");
-       sb.append(hexRed);
-       sb.append(hexGreen);
-       sb.append(hexBlue);
-
-       return sb.toString();
-   }
-   
-   private static void convert(Color color) {
-        final String hex = color.toString().replace("0x", "");
-        hexRed   = hex.substring(0, 2).toUpperCase();
-        hexGreen = hex.substring(2, 4).toUpperCase();
-        hexBlue  = hex.substring(4, 6).toUpperCase();
-
-        intRed   = Integer.toString(Integer.parseInt(hexRed, 16));
-        intGreen = Integer.toString(Integer.parseInt(hexGreen, 16));
-        intBlue  = Integer.toString(Integer.parseInt(hexBlue, 16));
-    }
-
+    public static String web(final Color COLOR) { return COLOR.toString().replace("0x", "#").substring(0, 7); }
 }

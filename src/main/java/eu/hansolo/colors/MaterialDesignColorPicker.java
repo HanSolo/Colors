@@ -61,12 +61,7 @@ public class MaterialDesignColorPicker extends Application {
             String name     = color.name().replace("_", " ");
             String strWeb   = ColorHelper.web(color.get());
             String strRgb   = ColorHelper.rgb(color.get());
-            String text     = new StringBuilder().append(name)
-                                                 .append("\n")
-                                                 .append(strWeb)
-                                                 .append("\n")
-                                                 .append(strRgb)
-                                                 .toString();
+            String text     = String.join("", name, "\n", strWeb, "\n", strRgb);
             MATCHER.reset(color.name());
             String brightness = "";
             while (MATCHER.find()) {

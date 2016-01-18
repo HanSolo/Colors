@@ -132,18 +132,9 @@ public enum Metro implements IColor {
         COLOR = Color.rgb(R, G, B);
     }
 
-    @Override
-    public Color get() {
-        return COLOR;
-    }
+    @Override public Color get() { return COLOR; }
 
-    @Override
-    public String rgb() {
-        return ColorHelper.rgb(COLOR);
-    }
+    @Override public String rgb() { return ColorHelper.rgb(COLOR); }
 
-    @Override
-    public String web() {
-        return ColorHelper.web(COLOR);
-    }
+    @Override public String web() { return ColorHelper.web(COLOR); }
 }
