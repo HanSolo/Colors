@@ -1,74 +1,100 @@
-// Colors main build file
-import org.gradle.api.XmlProvider
-import org.gradle.api.artifacts.maven.MavenDeployment
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
 
-apply plugin: 'idea'
-apply plugin: 'signing'
+import java.text.SimpleDateFormat
 
-def isDevBuild
-def isSnapshotBuild
-def isReleaseBuild
-
-def sonatypeRepositoryUrl
-
-// Apply settings for signing if available
-if (file("signing.properties").exists()) {
-    Properties props = new Properties()
-    props.load(new FileInputStream("signing.properties"))
-    props.each { key, value -> project.ext[key] = value }
+plugins {
+    id 'idea'
+    id 'java-library'
+    id 'maven-publish'
+    id 'signing'
+    id 'com.google.osdetector'           version '1.7.3'
+    id 'org.javamodularity.moduleplugin' version '1.8.12'
+    id 'org.beryx.jlink'                 version '3.0.1'
+    id 'net.nemerosa.versioning'         version '3.0.0'
 }
 
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
 
-//set build variables based on build type (release, continuous integration, development)
-if(hasProperty("release")) {
-    isReleaseBuild = true
-    sonatypeRepositoryUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-} else if (hasProperty("snapshot")) {
-    isSnapshotBuild = true
-    version += "-SNAPSHOT"
-    sonatypeRepositoryUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
-} else {
-    isDevBuild = true
+description   = 'A JavaFX library that contains different color sets'
+
+Date buildTimeAndDate = new Date()
+ext {
+    moduleName      = 'eu.hansolo.colors'
+    buildDate       = new SimpleDateFormat('yyyy-MM-dd').format(buildTimeAndDate)
+    buildTime       = new SimpleDateFormat('HH:mm:ss.SSSZ').format(buildTimeAndDate)
+    platform        = osdetector.os == 'osx' ? osdetector.arch == 'aarch_64' ? 'mac-aarch64' : 'mac' : osdetector.os == 'windows' ? 'win' : osdetector.os == 'linux' ? osdetector.arch == 'aarch_64' ? 'linux-aarch64' : 'linux' : osdetector.os
+    ciOssrhUsername = System.getenv('OSSRH_USERNAME')
+    ciOssrhPassword = System.getenv('OSSRH_PASSWORD')
+    ciGHUser        = System.getenv('GH_USER')
+    ciGHToken       = System.getenv('GH_TOKEN')
+    gpgkey          = System.getenv("GPG_PRIVATE_KEY")
+    gpgpassphrase   = System.getenv("PASSPHRASE")
 }
 
 repositories {
-    jcenter()
+    mavenCentral()
 }
 
-allprojects {
-    apply plugin: 'idea'
-    apply plugin: 'java'
-    apply plugin: 'maven'
+dependencies {
+    implementation "org.openjfx:javafx-base:${javafxVersion}:${platform}"
+    implementation "org.openjfx:javafx-graphics:${javafxVersion}:${platform}"
+    implementation "org.openjfx:javafx-controls:${javafxVersion}:${platform}"
+}
 
-    idea {
-        project {
-            jdkName '1.8'
-            languageLevel '1.8'
-        }
+application {
+    mainModule = moduleName
+}
+
+java {
+    // Set to false per https://github.com/java9-modularity/gradle-modules-plugin
+    modularity.inferModulePath.set(false)
+}
+
+jar {
+    from {
+        //duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        //configurations.runtimeClasspath.collect {  it.isDirectory() ? it : zipTree(it)  }
+    } {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+    manifest {
+        attributes(
+                'Built-By'              : System.properties['user.name'],
+                'Created-By'            : System.properties['java.version'] + " (" + System.properties['java.vendor'] + " " + System.properties['java.vm.version'] + ")",
+                'Build-Date'            : project.buildDate,
+                'Build-Time'            : project.buildTime,
+                'Build-Revision'        : versioning.info.commit,
+                'Specification-Title'   : project.name,
+                'Specification-Version' : project.version,
+                'Implementation-Title'  : project.name,
+                'Implementation-Version': project.version,
+                'Bundle-Name'           : project.name,
+                'Bundle-License'        : 'https://www.apache.org/licenses/LICENSE-2.0;description=Apache License Version 2.0;link=https://spdx.org/licenses/Apache-2.0.html',
+                'Bundle-Description'    : project.description,
+                'Bundle-SymbolicName'   : 'eu.hansolo.colors',
+                'Export-Package'        : 'eu.hansolo.colors',
+                'Class-Path'            : "${project.name}-${project.version}.jar",
+                'Main-Class'            : application.mainClass
+        )
     }
 }
+
 
 // create one jar for the javadoc
-task docs(type: Javadoc) {
-    source subprojects.collect { project -> project.sourceSets.main.allJava }
-    classpath = files(subprojects.collect { project -> project.sourceSets.main.compileClasspath })
-    destinationDir = new File('build/docs/javadoc')
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    archiveClassifier = 'javadoc'
+    from javadoc.destinationDir
 }
-task javadocJar(type: Jar, dependsOn: docs) {
-    classifier ='javadoc'
-    from 'build/docs/javadoc'
-}
-
 
 // create one jar for the source files
-task sourcesJar(type: Jar, dependsOn: javadocJar) {
-    classifier  = 'sources'
-    subprojects.each {
-        subproject ->
-            from subproject.configurations.archives.allArtifacts.files.filter { it.name.endsWith("sources.jar") }.collect { zipTree(it) }
-    }
+task sourcesJar(type: Jar, dependsOn: classes) {
+    archiveClassifier = 'sources'
+    from sourceSets.main.allSource
 }
-
 
 artifacts {
     archives jar
@@ -76,62 +102,93 @@ artifacts {
     archives sourcesJar
 }
 
-
-// signing the artifacts
-if (isReleaseBuild) {
-    signing {
-        sign configurations.archives
+signing {
+    if (gpgkey && gpgpassphrase) {
+        useInMemoryPgpKeys(gpgkey, gpgpassphrase)
     }
-} else {
-    task signArchives {
-        // do nothing
+
+    sign configurations.archives
+    sign publishing.publications
+}
+
+// Remove 'thirdPartyCompatibility' from JavaFX runtimeElements variant
+// Otherwise it locks Gradle Module Metadata (GMM) to the publishing OS
+tasks.withType(GenerateModuleMetadata).configureEach {
+    doLast { _ ->
+        def gmmFile = it.outputFile.get().asFile
+        def inJson = new JsonSlurper().parseText(gmmFile.text)
+        def filteredVariant = inJson.variants.findAll { it.name == configurations.runtimeElements.name }
+        // remove "thirdPartyCompatibility" from GMM
+        filteredVariant.dependencies.first().each {
+            if (it.group == 'org.openjfx') {
+                it.remove('thirdPartyCompatibility')
+            }
+        }
+        def outJson = JsonOutput.toJson(inJson)
+        gmmFile.write(JsonOutput.prettyPrint(outJson))
     }
 }
 
+publishing {
+    publications {
+        mavenCustom(MavenPublication) {
+            group = 'eu.hansolo'
+            artifactId = 'colors'
+            version = "${version}"
 
-// upload artifacts to maven
-uploadArchives {
-    repositories {
-        if (isDevBuild) {
-            //mavenLocal()
+            from components.java
+            artifact sourcesJar
+            artifact javadocJar
+
+            pom.withXml {
+                asNode().dependencies.'*'.findAll {
+                    it.groupId.text() == 'org.openjfx'
+                }.each {
+                    it.remove(it.classifier)
+                }
+            }
+
+            pom {
+                name = 'Heatmap'
+                description = 'A JavaFX library that contains different color sets'
+                url = "https://github.com/HanSolo/heatmap/wiki"
+                licenses {
+                    license {
+                        name = "The Apache License, Version 2.0"
+                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                    }
+                }
+                developers {
+                    developer {
+                        id = "HanSolo"
+                        name = "Gerrit Grunwald"
+                        email = "han.solo@mac.com"
+                    }
+                }
+                scm {
+                    connection = "scm:git:https://HanSolo/Colors"
+                    developerConnection = "scm:git:https://HanSolo/Colors"
+                    url = "https://github.com/HanSolo/Colors"
+                }
+            }
         }
-        else {
-            mavenDeployer {
-                if(isReleaseBuild) {
-                    beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-                }
+    }
 
-                repository(url: sonatypeRepositoryUrl) {
-                    authentication(userName: sonatypeUsername, password: sonatypePassword)
-                }
-
-                pom.project {
-                    name 'Colors'
-                    packaging 'jar'
-                    description 'Colors contains popular color definitions for JavaFX (e.g. Flat UI and Material Design Colors)'
-                    url 'https://github.com/HanSolo/Colors/wiki'
-
-                    scm {
-                        url 'scm:git@github.com:HanSolo/Colors.git'
-                        connection 'scm:git@github.com:HanSolo/Colors.git'
-                        developerConnection 'scm:git@github.com:HanSolo/Colors.git'
-                    }
-
-                    licenses {
-                        license {
-                            name 'The Apache Software License, Version 2.0'
-                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                            distribution 'repo'
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id 'HanSolo'
-                            name 'Gerrit Grunwald'
-                        }
-                    }
-                }
+    repositories {
+        maven {
+            name = "OSSRH"
+            url = 'https://oss.sonatype.org/service/local/staging/deploy/maven2'
+            credentials {
+                username = null == ciOssrhUsername ? ossrhUsername : ciOssrhUsername
+                password = null == ciOssrhPassword ? ossrhPassword : ciOssrhPassword
+            }
+        }
+        maven {
+            name = "GitHubPackages"
+            url = "https://maven.pkg.github.com/HanSolo/Colors"
+            credentials {
+                username = null == ciGHUser  ? ghUser  : ciGHUser
+                password = null == ciGHToken ? ghToken : ciGHToken
             }
         }
     }
