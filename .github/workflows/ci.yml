@@ -42,7 +42,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: Heatmap-${{ matrix.os }}
+          name: Colors-${{ matrix.os }}
           path: ./build/libs/**
       - name: Verify jlink
         run: ./gradlew jlink
