@@ -18,6 +18,7 @@ apply plugin: 'maven-publish'
 apply plugin: 'signing'
 
 description   = 'A JavaFX library that contains different color sets'
+mainClassName = "$moduleName/eu.hansolo.colors.Demo"
 
 Date buildTimeAndDate = new Date()
 ext {

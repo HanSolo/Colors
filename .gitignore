@@ -5,3 +5,4 @@ colors.iml
 gradle
 signing.properties
 /.nb-gradle/
+.DS_Store
